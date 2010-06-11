@@ -29,3 +29,6 @@
     testing of various RDBMS using the same tests
   - Automatically infer quote_char/name_sep from $schema->storage
   - Recursive update() (all code seems to be already available)
+
+2010-06-11 by Caldrin
+  - github test
