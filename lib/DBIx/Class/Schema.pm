@@ -588,7 +588,10 @@ source name.
 =cut
 
 sub source {
-  my ($self, $moniker) = @_;
+  my $self = shift;
+  $self->throw_exception("source() expects a source name")
+    unless @_;
+  my ($moniker) = @_;
   my $sreg = $self->source_registrations;
   return $sreg->{$moniker} if exists $sreg->{$moniker};
 
