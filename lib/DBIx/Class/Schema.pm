@@ -22,6 +22,8 @@ __PACKAGE__->mk_classdata('storage');
 __PACKAGE__->mk_classdata('exception_action');
 __PACKAGE__->mk_classdata('stacktrace' => $ENV{DBIC_TRACE} || 0);
 __PACKAGE__->mk_classdata('default_resultset_attributes' => {});
+__PACKAGE__->mk_classdata('result_namespace');
+__PACKAGE__->mk_classdata('resultset_namespace');
 
 =head1 NAME
 
@@ -220,6 +222,9 @@ sub load_namespaces {
   $class->throw_exception('load_namespaces: unknown option(s): '
     . join(q{,}, map { qq{'$_'} } keys %args))
       if scalar keys %args;
+
+  $class->result_namespace($result_namespace);
+  $class->resultset_namespace($resultset_namespace);
 
   $default_resultset_class
     = $class->_expand_relative_name($default_resultset_class);
@@ -900,6 +905,7 @@ will produce the output
 #   return $schema;
 # }
 
+
 sub compose_namespace {
   my ($self, $target, $base) = @_;
   my $schema = $self->clone;
@@ -908,14 +914,23 @@ sub compose_namespace {
 #    local *Class::C3::reinitialize = sub { };
     foreach my $moniker ($schema->sources) {
       my $source = $schema->source($moniker);
-      my $target_class = "${target}::${moniker}";
+      my $result_namespace  = $self->result_namespace ? "::".$self->result_namespace : '';
+      my $target_result_class = "${target}${result_namespace}::${moniker}";
       $self->inject_base(
-        $target_class => $source->result_class, ($base ? $base : ())
+        $target_result_class => $source->result_class, ($base ? $base : ())
       );
-      $source->result_class($target_class);
-      $target_class->result_source_instance($source)
-        if $target_class->can('result_source_instance');
-     $schema->register_source($moniker, $source);
+      $source->result_class($target_result_class);
+
+      if ($self->resultset_namespace) {
+        my $resultset_namespace  = "::".$self->resultset_namespace;
+        my $target_rs_class = "${target}${resultset_namespace}::${moniker}";
+        $self->inject_base( $target_rs_class => $source->resultset_class, ($base ? $base : ()));
+        $source->resultset_class($target_rs_class);
+      }
+
+      $target_result_class->result_source_instance($source)
+        if $target_result_class->can('result_source_instance');
+      $schema->register_source($moniker, $source);
     }
   }
 #  Class::C3->reinitialize();
