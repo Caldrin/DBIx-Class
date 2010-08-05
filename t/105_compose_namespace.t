@@ -2,13 +2,7 @@ use lib qw(t/lib);
 use DBICTest;
 use Test::More;
 
-my $db_file = "t/var/NSplain.db";
-
-unlink($db_file) if -e $db_file;
-unlink($db_file . "-journal") if -e $db_file . "-journal";
-mkdir("t/var") unless -d "t/var";
-
-my $dsn = "dbi:SQLite:${db_file}";
+my $dsn = "dbi:SQLite:dbname=:memory:";
 
 eval {
     local $SIG{__WARN__} = sub {};
@@ -26,11 +20,9 @@ eval {
 ok(!$@, 'Deriving result does not die') or diag $@;
 
 
-my $model         = DBICNSTest->connect($dsn);
-$model->storage->dbh_do(sub { $_[1]->do('CREATE TABLE a (a INT)')});
-$model->populate('A', [ [ 'a' ], [  17 ] ]);
-
 my $derived_model = DBICNSTest->compose_namespace('Derived::Schema')->connect($dsn);
+$derived_model->storage->dbh_do(sub { $_[1]->do('CREATE TABLE a (a INT)')});
+$derived_model->populate('A', [ [ 'a' ], [  17 ] ]);
 
 my $rset   = DBICNSTest->resultset('A');
 isa_ok($rset, 'DBICNSTest::ResultSet::A');
